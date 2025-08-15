@@ -34,6 +34,10 @@ class AnimalExtractor:
         while max_pages is None or page <= max_pages:
             try:
                 resp = self.retry_handler.request_with_retry("GET", self.base_url, params={"page": page}, timeout=self.timeout)
+                if resp is None:
+                    self.logger.error(f"Failed to fetch page {page}, got None")
+                    break
+
                 data = resp.json()
                 if max_pages is None:
                     max_pages = data.get("total_pages", page)
