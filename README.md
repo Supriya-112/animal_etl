@@ -79,15 +79,22 @@ Example log entry:
 
 🚀 Running the ETL
 ```shell
-
+python main.py
 ```
 
 Console output:
 ```shell
-Fetching all animals...
-Fetched 234 animals
+2025-08-15 20:35:03,434 - INFO - Fetching animal 219...
+2025-08-15 20:35:03,452 - INFO - Fetched total 220 animals.
+Fetched 220 animals
 Transforming animals...
 Posting animals in batches...
+2025-08-15 20:35:03,453 - INFO - Posting batch of 100 animals...
+2025-08-15 20:35:03,468 - INFO - Posted batch successfully.
+2025-08-15 20:35:03,468 - INFO - Posting batch of 100 animals...
+2025-08-15 20:35:03,487 - INFO - Posted batch successfully.
+2025-08-15 20:35:03,487 - INFO - Posting batch of 20 animals...
+2025-08-15 20:35:03,503 - INFO - Posted batch successfully.
 ETL completed successfully!
 ```
 
