@@ -3,12 +3,14 @@ import time
 from requests.exceptions import RequestException
 
 from .utils import RetryHandler, Logger
+from .config import Config
 
 class AnimalExtractor:
 
-    def __init__(self, base_url):
-        self.base_url = base_url
-        self.retry_handler = RetryHandler()
+    def __init__(self, cfg: Config):
+        self.base_url = cfg.get_animals_url()
+        self.timeout = cfg.get_timeout()
+        self.retry_handler = RetryHandler(cfg)
         self.logger = Logger.get_logger()
 
     def get_animal_detail(self, animal_id):
@@ -17,7 +19,7 @@ class AnimalExtractor:
         """
         url = f"{self.base_url}/{animal_id}"
         self.logger.info(f"Fetching animal {animal_id}...")
-        resp = self.retry_handler.request_with_retry("GET", url, timeout=20)
+        resp = self.retry_handler.request_with_retry("GET", url, timeout=self.timeout)
         return resp.json()
 
     def get_all_animals(self):
@@ -31,7 +33,7 @@ class AnimalExtractor:
 
         while max_pages is None or page <= max_pages:
             try:
-                resp = self.retry_handler.request_with_retry("GET", self.base_url, params={"page": page}, timeout=20)
+                resp = self.retry_handler.request_with_retry("GET", self.base_url, params={"page": page}, timeout=self.timeout)
                 data = resp.json()
                 if max_pages is None:
                     max_pages = data.get("total_pages", page)

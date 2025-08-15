@@ -5,11 +5,13 @@ import logging
 import os
 from datetime import datetime
 
+from .config import Config
+
 class RetryHandler:
-    
-    def __init__(self, max_attempts=5, backoff_factor=2):
-        self.max_attempts = max_attempts
-        self.backoff_factor = backoff_factor
+
+    def __init__(self, cfg: Config):
+        self.max_attempts = cfg.get_max_attempts()
+        self.backoff_factor = cfg.get_backoff_factor()
 
     def request_with_retry(self, method, url, **kwargs):
         for attempt in range(1, self.max_attempts + 1):
