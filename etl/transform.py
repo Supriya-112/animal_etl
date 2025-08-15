@@ -1,9 +1,13 @@
-# etl/transform.py
 from dateutil import parser
 from datetime import timezone
 
+from .utils import Logger
+
 class AnimalTransformer:
-    
+
+    def __init__(self):
+        self.logger = Logger.get_logger()
+
     def transform(self, animal: dict) -> dict:
         self._transform_friends(animal)
         self._transform_born_at(animal)
@@ -22,7 +26,7 @@ class AnimalTransformer:
                 dt = parser.parse(born_at)
                 animal["born_at"] = dt.astimezone(timezone.utc).isoformat()
             except Exception as e:
-                print(f"Warning: Could not parse born_at for animal {animal['id']}: {born_at}, error: {e}")
+                self.logger.info(f"Warning: Could not parse born_at for animal {animal['id']}: {born_at}, error: {e}")
                 animal["born_at"] = None
         else:
             animal["born_at"] = None

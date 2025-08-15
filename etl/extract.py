@@ -1,31 +1,24 @@
-# etl/fetch.py
 import requests
 import time
 from requests.exceptions import RequestException
+
+from .utils import RetryHandler, Logger
 
 class AnimalExtractor:
 
     def __init__(self, base_url):
         self.base_url = base_url
+        self.retry_handler = RetryHandler()
+        self.logger = Logger.get_logger()
 
     def get_animal_detail(self, animal_id):
         """
         Fetch details for a single animal by ID, with retries.
         """
         url = f"{self.base_url}/{animal_id}"
-        max_attempts = 5
-
-        for attempt in range(1, max_attempts + 1):
-            try:
-                response = requests.get(url, timeout=15)
-                response.raise_for_status()
-                return response.json()
-            except RequestException as e:
-                wait_time = 2 ** attempt
-                print(f"Error fetching animal {animal_id}: {e}. Retrying in {wait_time}s (attempt {attempt}/{max_attempts})...")
-                time.sleep(wait_time)
-
-        raise Exception(f"Failed to fetch animal {animal_id} after {max_attempts} attempts.")
+        self.logger.info(f"Fetching animal {animal_id}...")
+        resp = self.retry_handler.request_with_retry("GET", url, timeout=20)
+        return resp.json()
 
     def get_all_animals(self):
         """
@@ -33,44 +26,29 @@ class AnimalExtractor:
         """
         all_animals = []
         page = 1
-        max_page_retries = 5
-        max_pages = None 
+        max_pages = None
+        self.logger.info("Starting fetch of all animals...")
 
         while max_pages is None or page <= max_pages:
-            retries = 0
-            while retries < max_page_retries:
-                try:
-                    response = requests.get(self.base_url, params={"page": page}, timeout=20)
-                    response.raise_for_status()
-                    data = response.json()
+            try:
+                resp = self.retry_handler.request_with_retry("GET", self.base_url, params={"page": page}, timeout=20)
+                data = resp.json()
+                if max_pages is None:
+                    max_pages = data.get("total_pages", page)
+                    self.logger.info(f"Total pages detected: {max_pages}")
 
-                    # Set max_pages from first successful request
-                    if max_pages is None:
-                        max_pages = data.get("total_pages", page)
-                        print(f"Total pages detected: {max_pages}")
+                items = data.get("items", [])
+                if not items:
+                    break
 
-                    items = data.get("items", [])
-                    if not items:
-                        # No more animals to fetch
-                        return all_animals
+                for item in items:
+                    animal_detail = self.get_animal_detail(item["id"])
+                    all_animals.append(animal_detail)
 
-                    # Fetch details for each animal on this page
-                    for item in items:
-                        animal_detail = self.get_animal_detail(item["id"])
-                        all_animals.append(animal_detail)
-
-                    # Move to next page
-                    page += 1
-                    break  # Exit retry loop if successful
-
-                except RequestException as e:
-                    retries += 1
-                    wait_time = 2 ** retries
-                    print(f"Error fetching page {page}: {e}. Retry {retries}/{max_page_retries} in {wait_time}s...")
-                    time.sleep(wait_time)
-            else:
-                # Max retries exceeded for this page, skip it
-                print(f"Failed to fetch page {page} after {max_page_retries} retries. Skipping page.")
+                page += 1
+            except Exception as e:
+                self.logger.warning(f"Failed to fetch page {page}: {e}. Skipping page.")
                 page += 1
 
+        self.logger.info(f"Fetched total {len(all_animals)} animals.")
         return all_animals

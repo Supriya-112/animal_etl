@@ -1,28 +1,21 @@
-# etl/load.py
 import requests
 import time
 from requests.exceptions import RequestException
 
+from .utils import RetryHandler, Logger
+
 class AnimalLoader:
-    def __init__(self, home_url, batch_size):
-        self.home_url = home_url
+
+    def __init__(self, url, batch_size):
+        self.url = url
         self.batch_size = batch_size
+        self.retry_handler = RetryHandler()
+        self.logger = Logger.get_logger()
 
     def post_animals_batch(self, batch):
-        for attempt in range(5):
-            try:
-                resp = requests.post(HOME_URL, json=batch, timeout=30)
-                if resp.status_code in (500, 502, 503, 504):
-                    raise RequestException(f"Server error {resp.status_code}")
-                resp.raise_for_status()
-
-                print(f"Posted batch of {len(batch)} animals successfully")
-                return
-            except RequestException:
-                wait = 2 ** attempt
-                print(f"Retrying batch in {wait}s...")
-                time.sleep(wait)
-        raise Exception("Failed to post batch after multiple retries")
+        self.logger.info(f"Posting batch of {len(batch)} animals...")
+        self.retry_handler.request_with_retry("POST", self.url, json=batch, timeout=30)
+        self.logger.info(f"Posted batch successfully.")
 
     def post_all_animals(self, animals, batch_size=100):
         for i in range(0, len(animals), batch_size):

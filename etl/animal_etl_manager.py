@@ -1,6 +1,5 @@
-# etl/animal_etl_manager.py
-
 class AnimalETLManager:
+
     def __init__(self, extractor, transformer, loader):
         self.extractor = extractor
         self.transformer = transformer
